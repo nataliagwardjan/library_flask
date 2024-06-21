@@ -26,7 +26,7 @@ create_roles_table = f"""
     -- roles table
     CREATE TABLE IF NOT EXISTS {TABLE_ROLES} (
     id TEXT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL
+    name VARCHAR(100) NOT NULL UNIQUE
     );
 """
 create_users_roles_table = f"""
@@ -38,4 +38,16 @@ create_users_roles_table = f"""
     FOREIGN KEY (user_id) REFERENCES {TABLE_USERS}(id)
     FOREIGN KEY (role_id) REFERENCES {TABLE_ROLES}(id)
     );
+"""
+
+insert_user_sql = f"""
+INSERT INTO {TABLE_USERS} (id, name, surname, email, password) VALUES (?, ?, ?, ?, ?)
+"""
+
+insert_role_sql = f"""
+INSERT INTO {TABLE_ROLES} (id, name) VALUES (?, ?)
+"""
+
+insert_user_role_sql = f"""
+INSERT INTO {TABLE_USERS_ROLES} (id, user_id, role_id) VALUES (?, ?, ?)
 """

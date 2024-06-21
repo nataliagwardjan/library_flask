@@ -1,6 +1,7 @@
-error_schema = {
+response_schema = {
     "type": "object",
     "properties": {
+        "response_type": {"type": "string"},
         "code": {"type": "string"},
         "message": {"type": "string"},
         "http_status_code": {
@@ -9,7 +10,7 @@ error_schema = {
             "exclusiveMaximum": 600
         }
     },
-    "required": ["name", "surname", "email", "password"],
+    "required": ["response_type", "message", "http_status_code"],
     "additionalProperties": {"type": "string"}
 }
 

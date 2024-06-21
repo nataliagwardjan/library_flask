@@ -3,7 +3,7 @@ from jsonschema.validators import Draft7Validator
 from app import app
 from flask import request, jsonify
 from jsonschema import validate, ValidationError
-
+from main.service.user_service import add_new_user
 from main.const.json_schemas import add_user_schema
 
 
@@ -21,7 +21,8 @@ def add_user():
         error_messages = [{"message": error.message, "path": list(error.path)} for error in errors]
         return jsonify({"errors": error_messages}), 400
 
-    return jsonify({"received": user}), 201
+    response = add_new_user(user)
+    return jsonify(response), response['http_status_code']
 
 
 @app.route('/titles', methods=['GET'])
