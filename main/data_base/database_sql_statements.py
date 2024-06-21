@@ -10,7 +10,7 @@ TABLES:
     copy_statuses - table with possible copy statuses
     users_roles - table connecting users with their roles
 """
-from data_base.database_const import TABLE_USERS, TABLE_ROLES, TABLE_USERS_ROLES
+from main.const.database_const import TABLE_USERS, TABLE_ROLES, TABLE_USERS_ROLES
 
 create_users_table = f"""
     -- users table
