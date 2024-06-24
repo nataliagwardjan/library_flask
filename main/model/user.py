@@ -29,7 +29,7 @@ class User:
             "name": self.name,
             "surname": self.surname,
             "email": self.email,
-            "roles": self.roles
+            "roles": list(self.roles)
         }
 
     @property

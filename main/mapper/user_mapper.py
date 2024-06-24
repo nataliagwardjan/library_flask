@@ -1,11 +1,14 @@
 import uuid
 
+from main.exception.wrong_data_fields_amount_exception import WrongDataFieldsAmountException
+from main.exception.wrong_data_type_from_db import WrongDataTypeException
 from main.model.user import User, Role
 
 
-def map_user_tuple_to_user_class(user_tuple: tuple) -> User | None:
+def map_user_tuple_to_user_class(user_tuple: tuple, roles: set[Role]) -> User | None:
     """
     function map user get from db as tuple to class User
+    :param roles:
     :param user_tuple:
     :return: User or None
     """
@@ -16,18 +19,16 @@ def map_user_tuple_to_user_class(user_tuple: tuple) -> User | None:
             user_surname = str(user_tuple[2])
             user_email = str(user_tuple[3])
             user_password = str(user_tuple[4])
-            user = User(id=user_id,
+            user = User(user_id=user_id,
                         name=user_name,
                         surname=user_surname,
                         email=user_email,
                         password=user_password,
-                        roles={Role.READER})
+                        roles=roles)
             return user
         except ValueError as e:
-            # todo - exception for wrong value type case
             print(f"Wrong data type in the value, {e}")
-            return None
+            raise WrongDataTypeException(f"{e}")
     else:
-        # todo - exception for wrong tuple length
         print("User tuple has not correct length")
-    return None
+        raise WrongDataFieldsAmountException(f"User tuple has not correct length ({len(user_tuple)} not 5)")

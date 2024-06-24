@@ -1,8 +1,8 @@
 import uuid
 from main.const.database_const import TABLE_USERS
-from main.const.global_const import ADD_RECORD_TO_DATABASE, RECORD_NOT_ADDED_TO_DATABASE
+from main.const.global_const import ADD_RECORD_TO_DATABASE, RECORD_NOT_ADDED_TO_DATABASE, NOT_FOUND
 from main.data_base.db_repository import find_all, db_connection
-from main.data_base.user_repository import add_user_to_db
+from main.data_base.user_repository import add_user_to_db, find_user_by_id
 from main.exception.basic_exception import BasicException
 from main.exception.database_conection_failed_exception import DatabaseConnectionFailedException
 from main.login.password_analysis import hash_password
@@ -42,15 +42,36 @@ def add_new_user(new_user: dict) -> dict:
         conn.close()
 
 
-
-def get_user(user_id: uuid) -> dict:
-    return {}
+def get_user_by_id_from_db(user_id: uuid) -> dict:
+    conn = db_connection()
+    try:
+        if not conn:
+            raise DatabaseConnectionFailedException()
+        user_tuple, roles_tuple = find_user_by_id(conn, user_id)
+        roles_set = set()
+        for role in roles_tuple:
+            print(f"Role tuple = {role}")
+            roles_set.add(role[1])
+        user = map_user_tuple_to_user_class(user_tuple, roles_set)
+        response = user.to_dict()
+        response['http_status_code'] = 200
+        return response
+    except BasicException as e:
+        response = {
+            "response_type": NOT_FOUND,
+            "message": f"New user with id = {user_id} was not found in database",
+            "http_status_code": 404
+        }
+        print(e)
+        return response
+    finally:
+        conn.close()
 
 
 def get_users() -> dict:
     conn = db_connection()
     users_list = find_all(conn, TABLE_USERS)
-    users = {map_user_tuple_to_user_class(user) for user in users_list}
+    users = {map_user_tuple_to_user_class(user, {Role.READER}) for user in users_list}
     for user in users:
         print(user)
     users_dict = {user.to_dict() for user in users_list}

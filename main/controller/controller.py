@@ -1,3 +1,5 @@
+import uuid
+
 from jsonschema.validators import Draft7Validator
 
 from app import app
@@ -7,13 +9,28 @@ from jsonschema import validate, ValidationError
 from main.const.global_const import WRONG_DATA_FIELD_IN_REQUEST, EXCEPTION_HANDLE
 from main.exception.basic_exception import BasicException
 from main.exception.json_schema_validate_exception import JSONSchemaValidateException
-from main.service.user_service import add_new_user
+from main.service.user_service import add_new_user, get_user_by_id_from_db
 from main.const.json_schemas import add_user_schema, response_schema
 
 
 @app.route('/users', methods=['GET'])
 def get_users():
     return "<h1>USERS!</h1>"
+
+
+@app.route('/users/<user_id>', methods=['GET'])
+def get_user_by_id(user_id: uuid):
+    try:
+        response = get_user_by_id_from_db(user_id)
+        #json_schema_validator(response, response_schema)
+    except BasicException as e:
+        response = {
+            "response_type": EXCEPTION_HANDLE,
+            "message": f"Exception: {e}",
+            "http_status_code": 400
+        }
+        json_schema_validator(response, response_schema)
+    return jsonify(response), response['http_status_code']
 
 
 @app.route('/users', methods=['POST'])

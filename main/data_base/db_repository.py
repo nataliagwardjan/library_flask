@@ -97,11 +97,11 @@ def find_all(conn: Connection, table_name: str) -> list:
 def find_by_id(conn: Connection, record_id: str, table_name: str) -> list:
     if not conn:
         raise DatabaseConnectionFailedException()
-    if not is_table_exists(table_name):
+    if not is_table_exists(conn, table_name):
         raise NotFoundException(name=f"Table {table_name}")
     try:
         cur = conn.cursor()
-        cur.execute(f"SELECT * FROM {table_name} WHERE id = ?", record_id)
+        cur.execute(f"SELECT * FROM {table_name} WHERE id = ?", (record_id,))
         rows = cur.fetchall()
         return rows if rows else []
     except BasicException as e:
