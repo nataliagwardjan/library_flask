@@ -1,7 +1,7 @@
 # The Library
 
 A simple backend application built using the Flask framework in Python.
-
+Python version 3.10+
 ## Requirements
 
 To run this application, you need to have Python and packages from requirements.txt installed.
