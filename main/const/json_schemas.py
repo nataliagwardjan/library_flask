@@ -61,13 +61,38 @@ get_user_schema = {
             "uniqueItems": True
         }
     },
-    "required": ["is", "name", "surname", "email", "roles"],
+    "required": ["id", "name", "surname", "email", "roles"],
     "additionalProperties": {"type": "string"}
 }
 
-get_users_schema = {
+response_get_user_schema = {
     "type": "object",
     "properties": {
+        "response_type": {"type": "string"},
+        "code": {"type": "string"},
+        "message": {"type": "string"},
+        "http_status_code": {
+            "type": "integer",
+            "minimum": 100,
+            "exclusiveMaximum": 600
+        },
+        "user": get_user_schema
+    },
+    "required": ["response_type", "message", "http_status_code", "user"],
+    "additionalProperties": {"type": "string"}
+}
+
+response_get_users_schema = {
+    "type": "object",
+    "properties": {
+        "response_type": {"type": "string"},
+        "code": {"type": "string"},
+        "message": {"type": "string"},
+        "http_status_code": {
+            "type": "integer",
+            "minimum": 100,
+            "exclusiveMaximum": 600
+        },
         "users": {
             "type": "array",
             "items": get_user_schema,
@@ -91,7 +116,7 @@ get_users_schema = {
             "minimum": 1
         }
     },
-    "required": ["users"],
+    "required": ["response_type", "message", "http_status_code", "users"],
     "additionalProperties": {"type": "string"}
 }
 
@@ -206,5 +231,19 @@ get_title_long_schema = {
         "ebook": {"type": "boolean"}
     },
     "required": ["id", "title", "author", "publisher", "year", "description", "categories"],
+    "additionalProperties": {"type": "string"}
+}
+
+update_user_roles_schema = {
+    "type": "object",
+    "properties": {
+        "roles": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1,
+            "uniqueItems": True
+        }
+    },
+    "required": ["roles"],
     "additionalProperties": {"type": "string"}
 }

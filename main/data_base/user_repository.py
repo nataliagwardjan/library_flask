@@ -1,4 +1,5 @@
 import uuid
+from typing import List, Any
 
 from main.const.database_const import TABLE_USERS, TABLE_ROLES, TABLE_USERS_ROLES
 from main.data_base.database_sql_statements import insert_user_sql, insert_user_role_sql, create_users_table, \
@@ -83,12 +84,6 @@ def find_user_by_id(conn: Connection, user_id: uuid) -> (tuple, list[tuple]):
     if not is_table_exists(conn, TABLE_USERS):
         print(f"Table {TABLE_USERS} has not exist.")
         raise NotFoundException(name=f"Table {TABLE_USERS}")
-    if not is_table_exists(conn, TABLE_USERS_ROLES):
-        print(f"Table {TABLE_USERS_ROLES} has not exist.")
-        raise NotFoundException(name=f"Table {TABLE_USERS_ROLES}")
-    if not is_table_exists(conn, TABLE_ROLES):
-        print(f"Table {TABLE_ROLES} has not exist.")
-        raise NotFoundException(name=f"Table {TABLE_ROLES}")
     try:
         user_from_db = find_by_id(conn, str(user_id), TABLE_USERS)
         if not user_from_db or len(user_from_db) > 1:
@@ -97,23 +92,37 @@ def find_user_by_id(conn: Connection, user_id: uuid) -> (tuple, list[tuple]):
             raise NotFoundException(index=user_id, name="User")
         else:
             user_tuple = user_from_db[0]
-            user_roles_from_db = find_by_parameter(conn, str(user_id), TABLE_USERS_ROLES, 'user_id')
-            if not user_roles_from_db:
-                print(f"Roles for user with id = {user_id} does not exist.")
-                raise NotFoundException(index=user_id, name="Roles for user")
-            list_of_roles_tuple = []
-            print(f"user_roles_from_db = {user_roles_from_db}")
-            for item in user_roles_from_db:
-                print(f"Item = {item}")
-                role_tuple = find_by_id(conn, item[2], TABLE_ROLES)
-                if not role_tuple:
-                    print(f"Roles with id = {item[2]} does not exist.")
-                    raise NotFoundException(index=item[2], name="Role")
-                else:
-                    list_of_roles_tuple.append(role_tuple[0])
-                    print(f"Current list_of_role_tuple = {list_of_roles_tuple}")
+            list_of_roles_tuple = find_roles_for_user(conn, user_id)
             return user_tuple, list_of_roles_tuple
     except BasicException as e:
         raise QueryExecuteFailedException(f"{e}")
     except Error as e:
         raise DatabaseErrorException(f"{e}")
+
+
+def find_roles_for_user(conn: Connection, user_id: uuid) -> list:
+    if not is_table_exists(conn, TABLE_USERS_ROLES):
+        print(f"Table {TABLE_USERS_ROLES} has not exist.")
+        raise NotFoundException(name=f"Table {TABLE_USERS_ROLES}")
+    if not is_table_exists(conn, TABLE_ROLES):
+        print(f"Table {TABLE_ROLES} has not exist.")
+        raise NotFoundException(name=f"Table {TABLE_ROLES}")
+
+    user_roles_from_db = find_by_parameter(conn, str(user_id), TABLE_USERS_ROLES, 'user_id')
+
+    if not user_roles_from_db:
+        print(f"Roles for user with id = {user_id} does not exist.")
+        raise NotFoundException(index=user_id, name="Roles for user")
+    print(f"For user (id = {user_id}) users_roles records = {user_roles_from_db}")
+
+    list_of_roles_tuple = []
+
+    for role in user_roles_from_db:
+        role_tuple = find_by_id(conn, role[2], TABLE_ROLES)
+        if not role_tuple:
+            print(f"Roles with id = {role[2]} does not exist.")
+            raise NotFoundException(index=role[2], name="Role")
+        else:
+            list_of_roles_tuple.append(role_tuple[0])
+            print(f"List of roles for user (id = {user_id}) = {list_of_roles_tuple}")
+    return list_of_roles_tuple

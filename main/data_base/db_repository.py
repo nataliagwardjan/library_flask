@@ -80,7 +80,7 @@ def create_table(conn: Connection, create_table_segment: str, table_name: str):
 def find_all(conn: Connection, table_name: str) -> list:
     if not conn:
         raise DatabaseConnectionFailedException()
-    if not is_table_exists(table_name):
+    if not is_table_exists(conn, table_name):
         raise NotFoundException(name=f"Table {table_name}")
     try:
         cur = conn.cursor()
