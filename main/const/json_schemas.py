@@ -14,7 +14,7 @@ response_schema = {
     "additionalProperties": {"type": "string"}
 }
 
-add_user_schema = {
+request_add_user_schema = {
     "type": "object",
     "properties": {
         "name": {
@@ -117,6 +117,20 @@ response_get_users_schema = {
         }
     },
     "required": ["response_type", "message", "http_status_code", "users"],
+    "additionalProperties": {"type": "string"}
+}
+
+update_user_roles_schema = {
+    "type": "object",
+    "properties": {
+        "roles": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1,
+            "uniqueItems": True
+        }
+    },
+    "required": ["roles"],
     "additionalProperties": {"type": "string"}
 }
 
@@ -234,16 +248,4 @@ get_title_long_schema = {
     "additionalProperties": {"type": "string"}
 }
 
-update_user_roles_schema = {
-    "type": "object",
-    "properties": {
-        "roles": {
-            "type": "array",
-            "items": {"type": "string"},
-            "minItems": 1,
-            "uniqueItems": True
-        }
-    },
-    "required": ["roles"],
-    "additionalProperties": {"type": "string"}
-}
+

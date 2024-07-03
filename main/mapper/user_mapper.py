@@ -1,9 +1,7 @@
 import uuid
-from typing import Set, Any
 
 from main.const.global_const import USER_TUPLE_LENGTH, ROLE_TUPLE_LENGTH
-from main.exception.wrong_data_fields_amount_exception import WrongDataFieldsAmountException
-from main.exception.wrong_data_type_from_db import WrongDataTypeException
+from main.exception.exception import WrongDataFieldsAmountException, WrongDataTypeException
 from main.model.user import User, Role
 
 
@@ -49,5 +47,6 @@ def map_roles_tuple_to_roles_set(roles_tuple: list[tuple]) -> set:
             roles_set.add(role[1])
         else:
             print(f"Length of role tuple is not correct ({len(role)})")
-            raise WrongDataFieldsAmountException(f"Role tuple has not correct length ({len(role)} not {ROLE_TUPLE_LENGTH})")
+            raise WrongDataFieldsAmountException(
+                f"Role tuple has not correct length ({len(role)} not {ROLE_TUPLE_LENGTH})")
     return roles_set
