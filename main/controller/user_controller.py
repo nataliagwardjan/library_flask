@@ -64,7 +64,7 @@ def add_user():
     except BasicException as e:
         response = {
             "response_type": EXCEPTION_HANDLE,
-            "message": f"Exception: {e}",
+            "message": f"Exception: {e.message}",
             "http_status_code": 400
         }
         json_schema_validator(response, response_schema)

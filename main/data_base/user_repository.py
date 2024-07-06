@@ -2,11 +2,11 @@ import uuid
 
 from main.const.database_const import TABLE_USERS, TABLE_ROLES, TABLE_USERS_ROLES
 from main.data_base.database_sql_statements import insert_user_sql, insert_user_role_sql, create_users_table, \
-    create_users_roles_table, insert_role_sql
+    create_users_roles_table
 from main.data_base.db_repository import is_exist_by_parameter, find_by_parameter, is_table_exists, \
-    create_table, fill_enum_table, is_table_empty, find_by_id
+    create_table, create_enum_tables_and_fill_it, is_table_empty
 from main.exception.exception import AlreadyExistedException, BasicException, DatabaseConnectionFailedException, \
-    DatabaseErrorException, NotFoundException, QueryExecuteFailedException
+    DatabaseErrorException, NotFoundException, QueryExecuteFailedException, ValueException
 from main.model.user import User
 from sqlite3 import Connection, Error
 
@@ -15,20 +15,19 @@ def add_user_to_db(conn: Connection, user: User):
     if not conn:
         raise DatabaseConnectionFailedException()
     if not isinstance(user, User):
-        raise ValueError("Invalid user object or missing user attribute.")
+        raise ValueException("Invalid user object or missing user attribute.")
     if not is_table_exists(conn, TABLE_USERS):
         print(f"Table {TABLE_USERS} has not exist yet. It will be init now.")
         create_table(conn, create_users_table, TABLE_USERS)
     try:
-        if (is_exist_by_parameter(conn, str(user.id),
-                                  TABLE_USERS,
-                                  "id")
-                or is_exist_by_parameter(conn, str(user.email),
-                                         TABLE_USERS,
-                                         "email")):
-            print("User with given id or email has already existed")
-            raise AlreadyExistedException(index=user.id, name="User")
+        if (is_exist_by_parameter(conn=conn, table_name=TABLE_USERS, record_value=user.id, record_name="id")
+                or is_exist_by_parameter(conn=conn, table_name=TABLE_USERS, record_value=user.email,
+                                         record_name="email")):
+            print(f"User with given id ({user.id}) or email ({user.email}) has already existed.")
+            raise AlreadyExistedException(
+                f"User with given id ({user.id}) or email ({user.email}) has already existed.")
         else:
+            print(f"New user is going to add to database: user = {user}")
             cur = conn.cursor()
             user_roles = user.roles
             for user_role in user_roles:
@@ -40,6 +39,8 @@ def add_user_to_db(conn: Connection, user: User):
         raise QueryExecuteFailedException(f"{e}")
     except Error as e:
         raise DatabaseErrorException(f"{e}")
+    except Exception as e:
+        raise BasicException(f"{e}")
 
 
 def add_user_roles_to_db(conn: Connection, user_id: uuid, role_name: str):
@@ -47,16 +48,16 @@ def add_user_roles_to_db(conn: Connection, user_id: uuid, role_name: str):
         raise DatabaseConnectionFailedException()
     if (not is_table_exists(conn, TABLE_ROLES)) or is_table_empty(conn, TABLE_ROLES):
         print(f"Table {TABLE_ROLES} has not exist yet. It will be init now.")
-        fill_enum_table(conn)
+        create_enum_tables_and_fill_it(conn)
     try:
-        role_from_db = find_by_parameter(conn, TABLE_ROLES, role_name, 'name')
+        role_from_db = find_by_parameter(conn=conn, table_name=TABLE_ROLES, record_value=role_name, record_name='name')
         if not role_from_db or len(role_from_db) > 1:
             print(f"Role {role_name} does not exist or there are more then one "
                   f"({len(role_from_db)}) role with that name")
-            raise NotFoundException(name=f"Role {role_name}")
+            raise NotFoundException(f"Role {role_name} does not exist or there are more then one "
+                  f"({len(role_from_db)}) role with that name")
         else:
             role_id = role_from_db[0][0]
-            print(f"Type of role_id = {type(role_id)}")
             if not is_table_exists(conn, TABLE_USERS_ROLES):
                 print(f"Table {TABLE_USERS_ROLES} has not exist yet. It will be init now.")
                 create_table(conn, create_users_roles_table, TABLE_USERS_ROLES)
@@ -71,6 +72,8 @@ def add_user_roles_to_db(conn: Connection, user_id: uuid, role_name: str):
         raise QueryExecuteFailedException(f"{e}")
     except Error as e:
         raise DatabaseErrorException(f"{e}")
+    except Exception as e:
+        raise BasicException(f"{e}")
 
 
 def find_user_by_id(conn: Connection, user_id: uuid) -> (tuple, list[tuple]):
@@ -80,7 +83,7 @@ def find_user_by_id(conn: Connection, user_id: uuid) -> (tuple, list[tuple]):
         print(f"Table {TABLE_USERS} has not exist.")
         raise NotFoundException(name=f"Table {TABLE_USERS}")
     try:
-        user_from_db = find_by_id(conn, str(user_id), TABLE_USERS)
+        user_from_db = find_by_parameter(conn=conn, table_name=TABLE_USERS, record_value=str(user_id), record_name="id")
         if not user_from_db or len(user_from_db) > 1:
             print(f"User with id = {user_id} does not exist or there are more then one ({len(user_from_db)}) "
                   f"user with that id")
@@ -93,6 +96,8 @@ def find_user_by_id(conn: Connection, user_id: uuid) -> (tuple, list[tuple]):
         raise QueryExecuteFailedException(f"{e}")
     except Error as e:
         raise DatabaseErrorException(f"{e}")
+    except Exception as e:
+        raise BasicException(f"{e}")
 
 
 def find_roles_for_user_by_user_id(conn: Connection, user_id: uuid) -> set:
@@ -102,7 +107,7 @@ def find_roles_for_user_by_user_id(conn: Connection, user_id: uuid) -> set:
         raise NotFoundException(name=f"Table {TABLE_USERS}")
     if not is_table_exists(conn, TABLE_ROLES):
         raise NotFoundException(name=f"Table {TABLE_ROLES}")
-    if not is_exist_by_parameter(conn, user_id, TABLE_USERS, "id"):
+    if not is_exist_by_parameter(conn=conn, table_name=TABLE_USERS, record_value=user_id, record_name="id"):
         raise NotFoundException(index=user_id, name=f"User")
     if not is_table_exists(conn, TABLE_USERS_ROLES):
         print(f"Table {TABLE_USERS_ROLES} not found")
@@ -121,6 +126,8 @@ def find_roles_for_user_by_user_id(conn: Connection, user_id: uuid) -> set:
         raise QueryExecuteFailedException(f"{e}")
     except Error as e:
         raise DatabaseErrorException(f"{e}")
+    except Exception as e:
+        raise BasicException(f"{e}")
 
 
 def remove_role_for_user(conn: Connection, user_id, role_id):
@@ -139,5 +146,5 @@ def remove_role_for_user(conn: Connection, user_id, role_id):
         raise QueryExecuteFailedException(f"{e}")
     except Error as e:
         raise DatabaseErrorException(f"{e}")
-
-
+    except Exception as e:
+        raise BasicException(f"{e}")

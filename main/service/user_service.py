@@ -1,13 +1,14 @@
 import uuid
 from main.const.database_const import TABLE_USERS, TABLE_ROLES
-from main.const.global_const import ADD_RECORD_TO_DATABASE, RECORD_NOT_ADDED_TO_DATABASE, NOT_FOUND, \
-    FOUND_RECORD_IN_DATABASE, DATA_CANNOT_GET_FROM_DATABASE, UPDATE_RECORD_IN_DATABASE, ERROR_DURING_THE_UPDATE, \
-    USER_TUPLE_LENGTH, DELETE_RECORD_FROM_DATABASE, RECORD_NOT_REMOVED_FROM_DATABASE
+from main.const.global_const import ADD_RECORD_TO_DATABASE, RECORD_NOT_ADD, NOT_FOUND, \
+    FOUND_RECORD_IN_DATABASE, RECORD_NOT_GET, UPDATE_RECORD_IN_DATABASE, RECORD_NOT_UPDATE, \
+    USER_TUPLE_LENGTH, DELETE_RECORD_FROM_DATABASE, RECORD_NOT_REMOVE
 from main.data_base.db_repository import find_all, db_connection, is_exist_by_parameter, \
     delete_by_parameter
 from main.data_base.user_repository import add_user_to_db, find_user_by_id, add_user_roles_to_db, \
-    remove_role_for_user
-from main.exception.exception import BasicException, DatabaseConnectionFailedException
+    remove_role_for_user, find_roles_for_user_by_user_id
+from main.exception.exception import BasicException, DatabaseConnectionFailedException, NotGetException, \
+    NotAddException, NotFoundException, NotUpdateException
 from main.login.password_analysis import hash_password
 from main.mapper.user_mapper import map_user_tuple_to_user_class, map_roles_tuple_to_roles_set
 from main.model.user import User, Role
@@ -25,22 +26,20 @@ def add_new_user(new_user: dict) -> dict:
     try:
         if not conn:
             raise DatabaseConnectionFailedException()
-        add_user_to_db(conn, user)
-        print(f"User with id = {user.id} has been added to database.")  # todo - log
-        response = {
-            "response_type": ADD_RECORD_TO_DATABASE,
-            "message": f"New user with id = {user.id} has been added to database",
-            "http_status_code": 201
-        }
-        return response
+        else:
+            add_user_to_db(conn, user)
+            print(f"User with id = {user.id} has been added to database.")
+            response = {
+                "response_type": ADD_RECORD_TO_DATABASE,
+                "message": f"New user with id = {user.id} has been added to database",
+                "http_status_code": 201
+            }
+            return response
     except BasicException as e:
-        response = {
-            "response_type": RECORD_NOT_ADDED_TO_DATABASE,
-            "message": f"New user with id = {user.id} has not been added to database, exception/error: {e}",
-            "http_status_code": 400
-        }
-        print(e)
-        return response
+        print(
+            f"{RECORD_NOT_ADD}\nNew user with id = {user.id} has not been added to database, exception/error: {e}")
+        raise NotAddException(
+            message=f"New user with id = {user.id} has not been added to database, exception/error: {e}")
     finally:
         conn.close()
 
@@ -62,13 +61,9 @@ def get_user_by_id_from_db(user_id: uuid) -> dict:
         }
         return response
     except BasicException as e:
-        response = {
-            "response_type": NOT_FOUND,
-            "message": f"New user with id = {user_id} was not found in database, exception/error: {e}",
-            "http_status_code": 404
-        }
-        print(e)
-        return response
+        print(
+            f"{NOT_FOUND}\nThe user with id = {user_id} was not found in database, exception/error: {e}")
+        raise NotFoundException(index=user_id, name="User")
     finally:
         conn.close()
 
@@ -79,8 +74,8 @@ def get_all_users() -> dict:
         if not conn:
             raise DatabaseConnectionFailedException()
         users_list = find_all(conn, TABLE_USERS)
-        users = {map_user_tuple_to_user_class(user, map_roles_tuple_to_roles_set(find_roles_for_user(conn, user[0])))
-                 for user in users_list}
+        users = {map_user_tuple_to_user_class(user, map_roles_tuple_to_roles_set(
+            find_roles_for_user_by_user_id(conn=conn, user_id=uuid.UUID(user[0])))) for user in users_list}
         users_dict = list()
         for user in users:
             users_dict.append(user.to_dict())
@@ -92,13 +87,8 @@ def get_all_users() -> dict:
         }
         return response
     except BasicException as e:
-        response = {
-            "response_type": DATA_CANNOT_GET_FROM_DATABASE,
-            "message": f"Users cannot be get from database, exception/error: {e}",
-            "http_status_code": 404
-        }
-        print(e)
-        return response
+        print(f"{RECORD_NOT_GET}\nUsers cannot be get from database, exception/error: {e}")
+        raise NotGetException()
     finally:
         conn.close()
 
@@ -133,12 +123,8 @@ def update_user_roles_by_user_id(user_id: uuid, roles_list: list) -> dict:
             "http_status_code": 201
         }
     except BasicException as e:
-        print(e)
-        return {
-            "response_type": ERROR_DURING_THE_UPDATE,
-            "message": f"User with id = {user_id} cannot be updated, exception/error: {e}",
-            "http_status_code": 404
-        }
+        print(f"{RECORD_NOT_UPDATE}\nUser with id = {user_id} cannot be updated, exception/error: {e}")
+        raise NotUpdateException(f"User with id = {user_id} cannot be updated, exception/error: {e}")
     finally:
         conn.close()
 
@@ -148,14 +134,10 @@ def delete_user_by_id(user_id: uuid) -> dict:
     try:
         if not conn:
             raise DatabaseConnectionFailedException()
-
-        if not is_exist_by_parameter(conn, str(user_id), TABLE_USERS, "id"):
-            return {
-                "response_type": NOT_FOUND,
-                "message": f"User with id = {user_id} not found.",
-                "http_status_code": 404
-            }
-        delete_by_parameter(conn, str(user_id), TABLE_USERS, "id")
+        if not is_exist_by_parameter(conn=conn, table_name=TABLE_USERS, record_value=user_id, record_name="id"):
+            print(f"{NOT_FOUND}\nThe user with id = {user_id} was not found in database")
+            raise NotFoundException(index=user_id, name="User")
+        delete_by_parameter(conn=conn, table_name=TABLE_USERS, record_value=user_id, record_name="id")
         print(f"User with id = {user_id} has been removed")
         return {
             "response_type": DELETE_RECORD_FROM_DATABASE,
@@ -163,11 +145,8 @@ def delete_user_by_id(user_id: uuid) -> dict:
             "http_status_code": 204
         }
     except BasicException as e:
-        print(e)
-        return {
-            "response_type": RECORD_NOT_REMOVED_FROM_DATABASE,
-            "message": f"User with id = {user_id} cannot be removed, exception/error: {e}",
-            "http_status_code": 404
-        }
+        print(
+            f"{RECORD_NOT_REMOVE}\nThe user with id = {user_id} cannot be removed, exception/error: {e}")
+        raise NotFoundException(index=user_id, name="User")
     finally:
         conn.close()

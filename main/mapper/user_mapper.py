@@ -35,7 +35,7 @@ def map_user_tuple_to_user_class(user_tuple: tuple, roles: set[Role]) -> User | 
                                              f"({len(user_tuple)} not {USER_TUPLE_LENGTH})")
 
 
-def map_roles_tuple_to_roles_set(roles_tuple: list[tuple]) -> set:
+def map_roles_tuple_to_roles_set(roles_tuple: set[tuple]) -> set:
     """
     function map user get from db as tuple to class User
     :param roles_tuple:
