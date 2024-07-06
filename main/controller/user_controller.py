@@ -5,9 +5,9 @@ from jsonschema.validators import Draft7Validator
 from app import app
 from flask import request, jsonify
 
-from main.const.global_const import WRONG_DATA_FIELD_IN_REQUEST, EXCEPTION_HANDLE, JSON_SCHEMA_VALIDATION_FAILED
-from main.controller.controller import json_schema_validator
-from main.exception.exception import BasicException
+from main.const.global_const import EXCEPTION_HANDLE, JSON_SCHEMA_VALIDATION_FAILED, VALUE_ERROR
+from main.controller.validator import json_schema_validator
+from main.exception.exception import BasicException, JSONSchemaValidateException
 from main.service.user_service import add_new_user, get_user_by_id_from_db, get_all_users, update_user_roles_by_user_id, \
     delete_user_by_id
 from main.const.json_schemas import request_add_user_schema, response_schema, response_get_user_schema, \
@@ -21,12 +21,11 @@ def get_users():
         json_schema_validator(response, response_get_users_schema)
     except BasicException as e:
         response = {
-            "response_type": JSON_SCHEMA_VALIDATION_FAILED,
+            "response_type": e.exception_type,
             "message": f"Exception: {e}",
             "http_status_code": 400
         }
-        json_schema_validator(response, response_schema)
-    return jsonify(response), response['http_status_code']
+    return jsonify(response), response['http_status_code'] if response['http_status_code'] else 400
 
 
 @app.route('/users/<user_id>', methods=['GET'])
@@ -36,12 +35,11 @@ def get_user_by_id(user_id: uuid):
         json_schema_validator(response, response_get_user_schema)
     except BasicException as e:
         response = {
-            "response_type": JSON_SCHEMA_VALIDATION_FAILED,
+            "response_type": e.exception_type,
             "message": f"Exception: {e}",
             "http_status_code": 400
         }
-        json_schema_validator(response, response_schema)
-    return jsonify(response), response['http_status_code']
+    return jsonify(response), response['http_status_code'] if response['http_status_code'] else 400
 
 
 @app.route('/users', methods=['POST'])
@@ -52,7 +50,7 @@ def add_user():
     if errors:
         error_messages = [{"message": error.message, "path": list(error.path)} for error in errors]
         response = {
-            "response_type": WRONG_DATA_FIELD_IN_REQUEST,
+            "response_type": VALUE_ERROR,
             "message": f"{error_messages}",
             "http_status_code": 400
         }
@@ -63,11 +61,10 @@ def add_user():
         json_schema_validator(response, response_schema)
     except BasicException as e:
         response = {
-            "response_type": EXCEPTION_HANDLE,
+            "response_type": e.exception_type,
             "message": f"Exception: {e.message}",
             "http_status_code": 400
         }
-        json_schema_validator(response, response_schema)
     return jsonify(response), response['http_status_code'] if response['http_status_code'] else 400
 
 
@@ -79,7 +76,7 @@ def roles_update_user(user_id: uuid):
     if errors:
         error_messages = [{"message": error.message, "path": list(error.path)} for error in errors]
         response = {
-            "response_type": WRONG_DATA_FIELD_IN_REQUEST,
+            "response_type": VALUE_ERROR,
             "message": f"{error_messages}",
             "http_status_code": 400
         }
@@ -91,11 +88,10 @@ def roles_update_user(user_id: uuid):
         json_schema_validator(response, response_schema)
     except BasicException as e:
         response = {
-            "response_type": EXCEPTION_HANDLE,
+            "response_type": e.exception_type,
             "message": f"Exception: {e}",
             "http_status_code": 400
         }
-        json_schema_validator(response, response_schema)
     return jsonify(response), response['http_status_code'] if response['http_status_code'] else 400
 
 
@@ -107,13 +103,12 @@ def remove_user_by_id(user_id: uuid):
         print(response)
     except BasicException as e:
         response = {
-            "response_type": JSON_SCHEMA_VALIDATION_FAILED,
+            "response_type": e.exception_type,
             "message": f"Exception: {e}",
             "http_status_code": 400
         }
-        json_schema_validator(response, response_schema)
         print(response)
-    return jsonify(response), response['http_status_code']
+    return jsonify(response), response['http_status_code'] if response['http_status_code'] else 400
 
 
 # todo - /users/<user_id> PUT

@@ -21,7 +21,7 @@ load_dotenv()
 db_path = os.getenv('DATABASE_PATH')
 
 
-def db_connection():
+def db_connection() -> Connection:
     """ create a database connection to the SQLite database
         specified by db_file from .env
     :return: Connection object or None
@@ -104,7 +104,7 @@ def create_table(conn: Connection, create_table_segment: str, table_name: str):
         raise BasicException(message=f"{e}")
 
 
-def find_all(conn: Connection, table_name: str) -> list:
+def find_all(conn: Connection, table_name: str) -> set:
     if not conn:
         print(f"{DATABASE_CONNECTION_FAILED.title()}.")
         raise DatabaseConnectionFailedException()
@@ -117,7 +117,7 @@ def find_all(conn: Connection, table_name: str) -> list:
         cur.execute(query_select_all)
         rows = cur.fetchall()
         cur.close()
-        return rows if rows else []
+        return set(rows) if rows else set()
     except BasicException as e:
         print(f"Query '{query_select_all}' has not been executed in case of BasicException. Exception/error: {e}")
         raise QueryExecuteFailedException(message=f"{e}")
@@ -129,7 +129,7 @@ def find_all(conn: Connection, table_name: str) -> list:
         raise BasicException(message=f"{e}")
 
 
-def find_by_parameter(conn: Connection, table_name: str, record_value, record_name: str) -> list:
+def find_by_parameter(conn: Connection, table_name: str, record_value, record_name: str) -> set:
     if not conn:
         print(f"{DATABASE_CONNECTION_FAILED.title()}.")
         raise DatabaseConnectionFailedException()
@@ -141,7 +141,7 @@ def find_by_parameter(conn: Connection, table_name: str, record_value, record_na
         cur = conn.cursor()
         cur.execute(query, (record_value,))
         rows = cur.fetchall()
-        return rows if rows else []
+        return set(rows) if rows else set()
     except BasicException as e:
         print(f"Query '{query}' has not been executed in case of BasicException. Exception/error: {e}")
         raise QueryExecuteFailedException(message=f"{e}")
@@ -183,10 +183,13 @@ def delete_by_parameter(conn: Connection, table_name: str, record_value, record_
     if not conn:
         print(f"{DATABASE_CONNECTION_FAILED.title()}.")
         raise DatabaseConnectionFailedException()
-    if not is_table_exists(conn, table_name):
-        print(f"Record(s) with {record_name} = {record_value} has(have) not be found in table {table_name}.")
+    if not is_table_exists(conn=conn, table_name=table_name):
+        print(f"Table {table_name} has not existed. Data cannot be got.")
+        raise NotFoundException(message=f"Table {table_name} has not existed. Data cannot be got.")
+    if not is_exist_by_parameter(conn=conn, table_name=table_name, record_value=record_value, record_name=record_name):
+        print(f"Record(s) with {record_name} = {record_value} has(have) not existed. Not possible to remove.")
         raise NotFoundException(
-            message=f"Record(s) with {record_name} = {record_value} has(have) not be found in table {table_name}.")
+            message=f"Record(s) with {record_name} = {record_value} has(have) not existed. Not possible to remove.")
     query = f"DELETE FROM {table_name} WHERE {record_name} = ?"
     try:
         cur = conn.cursor()
@@ -205,7 +208,7 @@ def delete_by_parameter(conn: Connection, table_name: str, record_value, record_
         raise BasicException(message=f"{e}")
 
 
-def select_where(conn: Connection, table_name: str, **query: dict):
+def find_where_parameters(conn: Connection, table_name: str, **query: dict) -> set:
     """
     Query tasks from table with data from **query dict
     :param conn: the Connection object
@@ -213,17 +216,34 @@ def select_where(conn: Connection, table_name: str, **query: dict):
     :param query: dict of attributes and values
     :return:
     """
-    cur = conn.cursor()
-    qs = []
+    if not conn:
+        print(f"{DATABASE_CONNECTION_FAILED.title()}.")
+        raise DatabaseConnectionFailedException()
+    if not is_table_exists(conn=conn, table_name=table_name):
+        print(f"Table {table_name} has not existed. Data cannot be got.")
+        raise NotFoundException(message=f"Table {table_name} has not existed. Data cannot be got.")
+    query_segments = []
     values = ()
     for key, value in query.items():
-        qs.append(f"{key}=?")
+        query_segments.append(f"{key}=?")
         values += (value,)
-    q = " AND ".join(qs)
-    cur.execute(f"SELECT * FROM {table_name} WHERE {q}", values)
-    cur.close()
-    rows = cur.fetchall()
-    return rows
+    query_where = " AND ".join(query_segments)
+    query_message = f"SELECT * FROM {table_name} WHERE {query_where}"
+
+    try:
+        cur = conn.cursor()
+        cur.execute(query_message, (values,))
+        cur.close()
+        rows = cur.fetchall()
+        return set(rows) if rows else set()
+    except BasicException as e:
+        print(f"Query '{query_message}' has not been executed in case of BasicException. Exception/error: {e}")
+        raise QueryExecuteFailedException(message=f"{e}")
+    except Error as e:
+        print(f"Error with database. Exception/error: {e}")
+        raise DatabaseErrorException(message=f"{e}")
+    except Exception as e:
+        print(f"An exception has been handled. Exception/error: {e}")
 
 
 def create_enum_tables_and_fill_it(conn: Connection):

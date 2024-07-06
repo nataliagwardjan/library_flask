@@ -247,5 +247,3 @@ get_title_long_schema = {
     "required": ["id", "title", "author", "publisher", "year", "description", "categories"],
     "additionalProperties": {"type": "string"}
 }
-
-

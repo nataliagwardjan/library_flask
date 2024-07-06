@@ -1,14 +1,14 @@
 import uuid
-from main.const.database_const import TABLE_USERS, TABLE_ROLES
+from main.const.database_const import TABLE_USERS, TABLE_ROLES, TABLE_USERS_ROLES
 from main.const.global_const import ADD_RECORD_TO_DATABASE, RECORD_NOT_ADD, NOT_FOUND, \
     FOUND_RECORD_IN_DATABASE, RECORD_NOT_GET, UPDATE_RECORD_IN_DATABASE, RECORD_NOT_UPDATE, \
-    USER_TUPLE_LENGTH, DELETE_RECORD_FROM_DATABASE, RECORD_NOT_REMOVE
+    USER_TUPLE_LENGTH, DELETE_RECORD_FROM_DATABASE, RECORD_NOT_REMOVE, DATABASE_CONNECTION_FAILED
 from main.data_base.db_repository import find_all, db_connection, is_exist_by_parameter, \
     delete_by_parameter
 from main.data_base.user_repository import add_user_to_db, find_user_by_id, add_user_roles_to_db, \
     remove_role_for_user, find_roles_for_user_by_user_id
 from main.exception.exception import BasicException, DatabaseConnectionFailedException, NotGetException, \
-    NotAddException, NotFoundException, NotUpdateException
+    NotAddException, NotFoundException, NotUpdateException, NotDeleteException
 from main.login.password_analysis import hash_password
 from main.mapper.user_mapper import map_user_tuple_to_user_class, map_roles_tuple_to_roles_set
 from main.model.user import User, Role
@@ -25,6 +25,7 @@ def add_new_user(new_user: dict) -> dict:
     conn = db_connection()
     try:
         if not conn:
+            print(f"{DATABASE_CONNECTION_FAILED.title()}.")
             raise DatabaseConnectionFailedException()
         else:
             add_user_to_db(conn, user)
@@ -36,10 +37,9 @@ def add_new_user(new_user: dict) -> dict:
             }
             return response
     except BasicException as e:
-        print(
-            f"{RECORD_NOT_ADD}\nNew user with id = {user.id} has not been added to database, exception/error: {e}")
+        print(f"Exception type: {e.exception_type}, exception message = {e.message}")
         raise NotAddException(
-            message=f"New user with id = {user.id} has not been added to database, exception/error: {e}")
+            message=f"New user with id = {user.id} has not been added to database. Exception/error: {e}")
     finally:
         conn.close()
 
@@ -48,6 +48,7 @@ def get_user_by_id_from_db(user_id: uuid) -> dict:
     conn = db_connection()
     try:
         if not conn:
+            print(f"{DATABASE_CONNECTION_FAILED.title()}.")
             raise DatabaseConnectionFailedException()
         user_tuple, roles_tuple = find_user_by_id(conn, user_id)
         roles_set = map_roles_tuple_to_roles_set(roles_tuple)
@@ -61,9 +62,8 @@ def get_user_by_id_from_db(user_id: uuid) -> dict:
         }
         return response
     except BasicException as e:
-        print(
-            f"{NOT_FOUND}\nThe user with id = {user_id} was not found in database, exception/error: {e}")
-        raise NotFoundException(index=user_id, name="User")
+        print(f"Exception type: {e.exception_type}, exception message = {e.message}")
+        raise NotGetException(message=f"The user with id = {user_id} was not found in database, exception/error: {e}")
     finally:
         conn.close()
 
@@ -72,6 +72,7 @@ def get_all_users() -> dict:
     conn = db_connection()
     try:
         if not conn:
+            print(f"{DATABASE_CONNECTION_FAILED.title()}.")
             raise DatabaseConnectionFailedException()
         users_list = find_all(conn, TABLE_USERS)
         users = {map_user_tuple_to_user_class(user, map_roles_tuple_to_roles_set(
@@ -87,7 +88,7 @@ def get_all_users() -> dict:
         }
         return response
     except BasicException as e:
-        print(f"{RECORD_NOT_GET}\nUsers cannot be get from database, exception/error: {e}")
+        print(f"Exception type: {e.exception_type}, exception message = {e.message}")
         raise NotGetException()
     finally:
         conn.close()
@@ -97,6 +98,7 @@ def update_user_roles_by_user_id(user_id: uuid, roles_list: list) -> dict:
     conn = db_connection()
     try:
         if not conn:
+            print(f"{DATABASE_CONNECTION_FAILED.title()}.")
             raise DatabaseConnectionFailedException()
         user_tuple, user_roles_tuple_set_from_db = find_user_by_id(conn, user_id)
         if not user_tuple or len(user_tuple) != USER_TUPLE_LENGTH:
@@ -123,8 +125,8 @@ def update_user_roles_by_user_id(user_id: uuid, roles_list: list) -> dict:
             "http_status_code": 201
         }
     except BasicException as e:
-        print(f"{RECORD_NOT_UPDATE}\nUser with id = {user_id} cannot be updated, exception/error: {e}")
-        raise NotUpdateException(f"User with id = {user_id} cannot be updated, exception/error: {e}")
+        print(f"Exception type: {e.exception_type}, exception message = {e.message}")
+        raise NotUpdateException(message=f"User with id = {user_id} cannot be updated, exception/error: {e}")
     finally:
         conn.close()
 
@@ -135,9 +137,10 @@ def delete_user_by_id(user_id: uuid) -> dict:
         if not conn:
             raise DatabaseConnectionFailedException()
         if not is_exist_by_parameter(conn=conn, table_name=TABLE_USERS, record_value=user_id, record_name="id"):
-            print(f"{NOT_FOUND}\nThe user with id = {user_id} was not found in database")
-            raise NotFoundException(index=user_id, name="User")
+            print(f"User with id = {user_id} does not exist.")
+            raise NotFoundException(message=f"User with id = {user_id} does not exist.")
         delete_by_parameter(conn=conn, table_name=TABLE_USERS, record_value=user_id, record_name="id")
+        delete_by_parameter(conn=conn, table_name=TABLE_USERS_ROLES, record_value=user_id, record_name="user_id")
         print(f"User with id = {user_id} has been removed")
         return {
             "response_type": DELETE_RECORD_FROM_DATABASE,
@@ -145,8 +148,7 @@ def delete_user_by_id(user_id: uuid) -> dict:
             "http_status_code": 204
         }
     except BasicException as e:
-        print(
-            f"{RECORD_NOT_REMOVE}\nThe user with id = {user_id} cannot be removed, exception/error: {e}")
-        raise NotFoundException(index=user_id, name="User")
+        print(f"Exception type: {e.exception_type}, exception message = {e.message}")
+        raise NotDeleteException(f"User with id = {user_id} has not been removed")
     finally:
         conn.close()

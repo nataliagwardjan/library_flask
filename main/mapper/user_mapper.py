@@ -1,7 +1,7 @@
 import uuid
 
 from main.const.global_const import USER_TUPLE_LENGTH, ROLE_TUPLE_LENGTH
-from main.exception.exception import WrongDataFieldsAmountException, WrongDataTypeException
+from main.exception.exception import ValueException
 from main.model.user import User, Role
 
 
@@ -28,11 +28,10 @@ def map_user_tuple_to_user_class(user_tuple: tuple, roles: set[Role]) -> User | 
             return user
         except ValueError as e:
             print(f"Wrong data type in the value, {e}")
-            raise WrongDataTypeException(f"{e}")
+            raise ValueException(message=f"{e}")
     else:
         print("User tuple has not correct length")
-        raise WrongDataFieldsAmountException(f"User tuple has not correct length "
-                                             f"({len(user_tuple)} not {USER_TUPLE_LENGTH})")
+        raise ValueException(message=f"User tuple has not correct length ({len(user_tuple)} not {USER_TUPLE_LENGTH})")
 
 
 def map_roles_tuple_to_roles_set(roles_tuple: set[tuple]) -> set:
@@ -47,6 +46,5 @@ def map_roles_tuple_to_roles_set(roles_tuple: set[tuple]) -> set:
             roles_set.add(role[1])
         else:
             print(f"Length of role tuple is not correct ({len(role)})")
-            raise WrongDataFieldsAmountException(
-                f"Role tuple has not correct length ({len(role)} not {ROLE_TUPLE_LENGTH})")
+            raise ValueException(f"Role tuple has not correct length ({len(role)} not {ROLE_TUPLE_LENGTH})")
     return roles_set
