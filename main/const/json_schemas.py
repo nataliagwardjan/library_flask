@@ -120,7 +120,7 @@ response_get_users_schema = {
     "additionalProperties": {"type": "string"}
 }
 
-update_user_roles_schema = {
+request_update_user_roles_schema = {
     "type": "object",
     "properties": {
         "roles": {
@@ -132,6 +132,37 @@ update_user_roles_schema = {
     },
     "required": ["roles"],
     "additionalProperties": {"type": "string"}
+}
+
+request_update_user_schema = {
+    "type": "object",
+    "properties": {
+        "name": {
+            "type": "string",
+            "minLength": 2
+        },
+        "surname": {
+            "type": "string",
+            "minLength": 2
+        },
+        "email": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+        }
+    },
+    "required": ["name", "surname", "email"],
+    "additionalProperties": False
+}
+
+request_update_user_password_schema = {
+    "type": "object",
+    "properties": {
+        "current_password": {"type": "string"},
+        "new_password": {"type": "string"},
+        "repeat_new_password": {"type": "string"},
+    },
+    "required": ["current_password", "new_password", "repeat_new_password"],
+    "additionalProperties": False
 }
 
 add_author_schema = {

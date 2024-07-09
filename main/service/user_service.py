@@ -1,8 +1,8 @@
 import uuid
-from main.const.database_const import TABLE_USERS, TABLE_ROLES, TABLE_USERS_ROLES
-from main.const.global_const import ADD_RECORD_TO_DATABASE, RECORD_NOT_ADD, NOT_FOUND, \
-    FOUND_RECORD_IN_DATABASE, RECORD_NOT_GET, UPDATE_RECORD_IN_DATABASE, RECORD_NOT_UPDATE, \
-    USER_TUPLE_LENGTH, DELETE_RECORD_FROM_DATABASE, RECORD_NOT_REMOVE, DATABASE_CONNECTION_FAILED
+from main.const.database_const import TABLE_USERS, TABLE_USERS_ROLES
+from main.const.global_const import ADD_RECORD_TO_DATABASE, NOT_FOUND, \
+    FOUND_RECORD_IN_DATABASE, UPDATE_RECORD_IN_DATABASE, \
+    USER_TUPLE_LENGTH, DELETE_RECORD_FROM_DATABASE, DATABASE_CONNECTION_FAILED
 from main.data_base.db_repository import find_all, db_connection, is_exist_by_parameter, \
     delete_by_parameter
 from main.data_base.user_repository import add_user_to_db, find_user_by_id, add_user_roles_to_db, \
@@ -12,6 +12,7 @@ from main.exception.exception import BasicException, DatabaseConnectionFailedExc
 from main.login.password_analysis import hash_password
 from main.mapper.user_mapper import map_user_tuple_to_user_class, map_roles_tuple_to_roles_set
 from main.model.user import User, Role
+from main.validator.database_validator import check_database_connection
 
 
 def add_new_user(new_user: dict) -> dict:
@@ -47,9 +48,7 @@ def add_new_user(new_user: dict) -> dict:
 def get_user_by_id_from_db(user_id: uuid) -> dict:
     conn = db_connection()
     try:
-        if not conn:
-            print(f"{DATABASE_CONNECTION_FAILED.title()}.")
-            raise DatabaseConnectionFailedException()
+        check_database_connection(conn)
         user_tuple, roles_tuple = find_user_by_id(conn, user_id)
         roles_set = map_roles_tuple_to_roles_set(roles_tuple)
         user = map_user_tuple_to_user_class(user_tuple, roles_set)
@@ -71,9 +70,7 @@ def get_user_by_id_from_db(user_id: uuid) -> dict:
 def get_all_users() -> dict:
     conn = db_connection()
     try:
-        if not conn:
-            print(f"{DATABASE_CONNECTION_FAILED.title()}.")
-            raise DatabaseConnectionFailedException()
+        check_database_connection(conn)
         users_list = find_all(conn, TABLE_USERS)
         users = {map_user_tuple_to_user_class(user, map_roles_tuple_to_roles_set(
             find_roles_for_user_by_user_id(conn=conn, user_id=uuid.UUID(user[0])))) for user in users_list}
@@ -97,9 +94,7 @@ def get_all_users() -> dict:
 def update_user_roles_by_user_id(user_id: uuid, roles_list: list) -> dict:
     conn = db_connection()
     try:
-        if not conn:
-            print(f"{DATABASE_CONNECTION_FAILED.title()}.")
-            raise DatabaseConnectionFailedException()
+        check_database_connection(conn)
         user_tuple, user_roles_tuple_set_from_db = find_user_by_id(conn, user_id)
         if not user_tuple or len(user_tuple) != USER_TUPLE_LENGTH:
             return {
@@ -134,8 +129,29 @@ def update_user_roles_by_user_id(user_id: uuid, roles_list: list) -> dict:
 def delete_user_by_id(user_id: uuid) -> dict:
     conn = db_connection()
     try:
-        if not conn:
-            raise DatabaseConnectionFailedException()
+        check_database_connection(conn)
+        if not is_exist_by_parameter(conn=conn, table_name=TABLE_USERS, record_value=user_id, record_name="id"):
+            print(f"User with id = {user_id} does not exist.")
+            raise NotFoundException(message=f"User with id = {user_id} does not exist.")
+        delete_by_parameter(conn=conn, table_name=TABLE_USERS, record_value=user_id, record_name="id")
+        delete_by_parameter(conn=conn, table_name=TABLE_USERS_ROLES, record_value=user_id, record_name="user_id")
+        print(f"User with id = {user_id} has been removed")
+        return {
+            "response_type": DELETE_RECORD_FROM_DATABASE,
+            "message": f"User with id = {user_id} has been removed",
+            "http_status_code": 204
+        }
+    except BasicException as e:
+        print(f"Exception type: {e.exception_type}, exception message = {e.message}")
+        raise NotDeleteException(f"User with id = {user_id} has not been removed")
+    finally:
+        conn.close()
+
+
+def update_user_by_user_id(user_id: uuid, user_update: dict):
+    conn = db_connection()
+    try:
+        check_database_connection(conn)
         if not is_exist_by_parameter(conn=conn, table_name=TABLE_USERS, record_value=user_id, record_name="id"):
             print(f"User with id = {user_id} does not exist.")
             raise NotFoundException(message=f"User with id = {user_id} does not exist.")

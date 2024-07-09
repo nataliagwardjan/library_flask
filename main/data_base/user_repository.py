@@ -11,11 +11,11 @@ from main.exception.exception import AlreadyExistedException, BasicException, Da
 from main.model.user import User
 from sqlite3 import Connection, Error
 
+from main.validator.database_validator import check_database_connection
+
 
 def add_user_to_db(conn: Connection, user: User):
-    if not conn:
-        print(f"{DATABASE_CONNECTION_FAILED.title()}.")
-        raise DatabaseConnectionFailedException()
+    check_database_connection(conn)
     if not isinstance(user, User):
         raise ValueException(message="Invalid user object or missing user attribute.")
     if not is_table_exists(conn, TABLE_USERS):
@@ -49,9 +49,7 @@ def add_user_to_db(conn: Connection, user: User):
 
 
 def add_user_roles_to_db(conn: Connection, user_id: uuid, role_name: str):
-    if not conn:
-        print(f"{DATABASE_CONNECTION_FAILED.title()}.")
-        raise DatabaseConnectionFailedException()
+    check_database_connection(conn)
     if (not is_table_exists(conn, TABLE_ROLES)) or is_table_empty(conn, TABLE_ROLES):
         print(f"Table {TABLE_ROLES} has not exist yet. It will be init now.")
         create_enum_tables_and_fill_it(conn)
@@ -87,9 +85,7 @@ def add_user_roles_to_db(conn: Connection, user_id: uuid, role_name: str):
 
 
 def find_user_by_id(conn: Connection, user_id: uuid) -> (tuple, list[tuple]):
-    if not conn:
-        print(f"{DATABASE_CONNECTION_FAILED.title()}.")
-        raise DatabaseConnectionFailedException()
+    check_database_connection(conn)
     if not is_table_exists(conn, TABLE_USERS):
         print(f"Table {TABLE_USERS} has not existed. User cannot be found.")
         raise NotFoundException(f"Table {TABLE_USERS} has not existed. User cannot be found.")
@@ -116,9 +112,7 @@ def find_user_by_id(conn: Connection, user_id: uuid) -> (tuple, list[tuple]):
 
 
 def find_roles_for_user_by_user_id(conn: Connection, user_id: uuid) -> set:
-    if not conn:
-        print(f"{DATABASE_CONNECTION_FAILED.title()}.")
-        raise DatabaseConnectionFailedException()
+    check_database_connection(conn)
     if not is_table_exists(conn, TABLE_USERS):
         print(f"Table {TABLE_USERS} has not existed. User cannot be found.")
         raise NotFoundException(f"Table {TABLE_USERS} has not existed. Roles for user cannot be found.")
@@ -154,9 +148,7 @@ def find_roles_for_user_by_user_id(conn: Connection, user_id: uuid) -> set:
 
 
 def remove_role_for_user(conn: Connection, user_id, role_id):
-    if not conn:
-        print(f"{DATABASE_CONNECTION_FAILED.title()}.")
-        raise DatabaseConnectionFailedException()
+    check_database_connection(conn)
     if not is_exist_by_parameter(conn, str(user_id), TABLE_USERS, "id"):
         print(f"User with id = {user_id} does not exist.")
         raise NotFoundException(message=f"User with id = {user_id} does not exist.")

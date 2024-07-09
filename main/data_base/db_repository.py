@@ -15,6 +15,7 @@ from main.exception.exception import QueryExecuteFailedException
 from main.model.copy import Status
 from main.model.title import Category
 from main.model.user import Role
+from main.validator.database_validator import check_database_connection
 
 load_dotenv()
 
@@ -41,9 +42,7 @@ def db_connection() -> Connection:
 
 
 def is_table_exists(conn: Connection, table_name: str) -> bool:
-    if not conn:
-        print(f"{DATABASE_CONNECTION_FAILED.title()}.")
-        raise DatabaseConnectionFailedException()
+    check_database_connection(conn)
     query = "SELECT name FROM sqlite_master WHERE type='table' AND name=?"
     try:
         cur = conn.cursor()
@@ -63,9 +62,7 @@ def is_table_exists(conn: Connection, table_name: str) -> bool:
 
 
 def is_table_empty(conn: Connection, table_name: str) -> bool:
-    if not conn:
-        print(f"{DATABASE_CONNECTION_FAILED.title()}.")
-        raise DatabaseConnectionFailedException()
+    check_database_connection(conn)
     query = f"SELECT COUNT(*) FROM {table_name}"
     try:
         cur = conn.cursor()
@@ -85,9 +82,7 @@ def is_table_empty(conn: Connection, table_name: str) -> bool:
 
 
 def create_table(conn: Connection, create_table_segment: str, table_name: str):
-    if not conn:
-        print(f"{DATABASE_CONNECTION_FAILED.title()}.")
-        raise DatabaseConnectionFailedException()
+    check_database_connection(conn)
     try:
         cur = conn.cursor()
         cur.execute(create_table_segment)
@@ -105,9 +100,7 @@ def create_table(conn: Connection, create_table_segment: str, table_name: str):
 
 
 def find_all(conn: Connection, table_name: str) -> set:
-    if not conn:
-        print(f"{DATABASE_CONNECTION_FAILED.title()}.")
-        raise DatabaseConnectionFailedException()
+    check_database_connection(conn)
     if not is_table_exists(conn, table_name):
         print(f"Table {table_name} has not existed. Select all record cannot be executed.")
         raise NotFoundException(message=f"Table {table_name} has not existed. Select all record cannot be executed.")
@@ -130,9 +123,7 @@ def find_all(conn: Connection, table_name: str) -> set:
 
 
 def find_by_parameter(conn: Connection, table_name: str, record_value, record_name: str) -> set:
-    if not conn:
-        print(f"{DATABASE_CONNECTION_FAILED.title()}.")
-        raise DatabaseConnectionFailedException()
+    check_database_connection(conn)
     if not is_table_exists(conn, table_name):
         print(f"Table {table_name} has not existed. Data cannot be got.")
         raise NotFoundException(message=f"Table {table_name} has not existed. Data cannot be got.")
@@ -154,9 +145,7 @@ def find_by_parameter(conn: Connection, table_name: str, record_value, record_na
 
 
 def is_exist_by_parameter(conn: Connection, table_name: str, record_value, record_name: str) -> bool:
-    if not conn:
-        print(f"{DATABASE_CONNECTION_FAILED.title()}.")
-        raise DatabaseConnectionFailedException()
+    check_database_connection(conn)
     if not is_table_exists(conn, table_name):
         print(f"Table {table_name} has not existed. Data cannot be got.")
         raise NotFoundException(message=f"Table {table_name} has not existed. Data cannot be got.")
@@ -180,9 +169,7 @@ def is_exist_by_parameter(conn: Connection, table_name: str, record_value, recor
 
 
 def delete_by_parameter(conn: Connection, table_name: str, record_value, record_name: str):
-    if not conn:
-        print(f"{DATABASE_CONNECTION_FAILED.title()}.")
-        raise DatabaseConnectionFailedException()
+    check_database_connection(conn)
     if not is_table_exists(conn=conn, table_name=table_name):
         print(f"Table {table_name} has not existed. Data cannot be got.")
         raise NotFoundException(message=f"Table {table_name} has not existed. Data cannot be got.")
@@ -216,9 +203,7 @@ def find_where_parameters(conn: Connection, table_name: str, **query: dict) -> s
     :param query: dict of attributes and values
     :return:
     """
-    if not conn:
-        print(f"{DATABASE_CONNECTION_FAILED.title()}.")
-        raise DatabaseConnectionFailedException()
+    check_database_connection(conn)
     if not is_table_exists(conn=conn, table_name=table_name):
         print(f"Table {table_name} has not existed. Data cannot be got.")
         raise NotFoundException(message=f"Table {table_name} has not existed. Data cannot be got.")
@@ -287,9 +272,7 @@ def create_enum_table_and_fill_it(conn: Connection, table_name: str, record_list
 
 
 def add_enum_record_to_db(conn: Connection, sql_insert_comment: str, record_name: str):
-    if not conn:
-        print(f"{DATABASE_CONNECTION_FAILED.title()}.")
-        raise DatabaseConnectionFailedException()
+    check_database_connection(conn)
     try:
         cur = conn.cursor()
         record_id = uuid.uuid4()
